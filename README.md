@@ -1,0 +1,3 @@
+A Automated Budget app made for self use using Kotlin. The app has a notification listener, and when the bank's app send a notification of the charge, it gets the notification data. This data is then sliced to find the amount of money that was charged. It also slices the other data of the charge and adds it to the description. The app displays, the amount that was charged, the description, and when it was charged.
+
+I'm currently working on expanding the app to show other details that could be helpful and are available in other budget apps like the monthly average and maybe even categories of the purchases.
