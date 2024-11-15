@@ -50,6 +50,23 @@ android {
 }
 
 dependencies {
+    val work_version = "2.9.1"
+
+
+    // Kotlin + coroutines
+    implementation("androidx.work:work-runtime-ktx:$work_version")
+
+    // optional - RxJava2 support
+    implementation("androidx.work:work-rxjava2:$work_version")
+
+    // optional - GCMNetworkManager support
+    implementation("androidx.work:work-gcm:$work_version")
+
+    // optional - Test helpers
+    androidTestImplementation("androidx.work:work-testing:$work_version")
+
+    // optional - Multiprocess support
+    implementation("androidx.work:work-multiprocess:$work_version")
 
     implementation(libs.gson)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
