@@ -14,11 +14,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.Worker
+import androidx.lifecycle.ViewModelProvider
 import com.example.budgetapp.ui.theme.BudgetAppTheme
-import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -42,6 +39,19 @@ class MainActivity : ComponentActivity() {
         val packageNames = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
         return !TextUtils.isEmpty(packageNames) && packageNames.contains(packageName)
     }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Obtain the ViewModel using ViewModelProvider
+        val viewModel: BudgetViewModel = ViewModelProvider(this)[BudgetViewModel::class.java]
+
+        // Reload transactions
+        viewModel.reloadTransactions(this)
+    }
+
+
+
 }
 
 

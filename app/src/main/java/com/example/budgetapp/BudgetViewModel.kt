@@ -41,4 +41,13 @@ class BudgetViewModel :ViewModel(){
             }
         }
     }
+
+    fun reloadTransactions(context: Context) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                transactions = SharedPreferencesHelper.getTransactions(context)
+            }
+        }
+    }
+
 }
