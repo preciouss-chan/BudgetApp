@@ -7,15 +7,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -184,3 +189,40 @@ fun BudgetListTransaction(transaction: Transaction) {
         )
     }
 }
+
+@Composable
+fun MonthlySpendingBarChart(monthlyData: List<Pair<String, Double>>) {
+    val maxSpending = monthlyData.maxOfOrNull { it.second } ?: 1.0
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(text = "Monthly Spending", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(modifier = Modifier.fillMaxWidth()) {
+            items(monthlyData) { (month, total) ->
+                Column(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .height(200.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Bar representing spending
+                    Box(
+                        modifier = Modifier
+                            .height((200 * (total / maxSpending)).dp)
+                            .width(40.dp)
+                            .background(Color.Blue)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Month label
+                    Text(text = month, style = MaterialTheme.typography.bodySmall)
+                    // Spending label
+                    Text(text = "$${"%.2f".format(total)}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
