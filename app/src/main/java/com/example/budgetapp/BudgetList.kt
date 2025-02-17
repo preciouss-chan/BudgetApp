@@ -16,14 +16,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,73 +38,91 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetList(viewModel: BudgetViewModel = viewModel()) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    val monthlyData = viewModel.getMonthlySpending()
 
-    // Load transactions when the composable is first launched
     LaunchedEffect(Unit) {
         viewModel.loadTransactions(context)
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            Box(modifier = Modifier.background(Color.Black)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Text(
-                        text = "Content",
-                        fontSize = 24.sp,
-                        color = Color.White,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(16.dp)
-                    )
-                    Text(
-                        text = "$",
-                        fontSize = 24.sp,
-                        color = Color.White,
-                        modifier = Modifier
-                            .weight(0.5f)
-                            .padding(16.dp)
-                    )
-                    Text(
-                        text = "Date",
-                        fontSize = 24.sp,
-                        color = Color.White,
-                        modifier = Modifier
-                            .weight(0.6f)
-                            .padding(16.dp)
-                    )
-                }
-            }
-
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(viewModel.transactions) { item ->
-                    BudgetListTransaction(transaction = item)
-                    HorizontalDivider(thickness = 2.dp)
-                }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Budget Overview") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showDialog = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text("+", style = MaterialTheme.typography.headlineMedium)
             }
         }
-
-        Box(
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.BottomEnd
         ) {
-            FloatingActionButton(onClick = { showDialog = true }, modifier = Modifier.padding(16.dp)) {
-                Text("+", fontSize = 30.sp)
+            // Monthly Spending Chart
+            if (monthlyData.isNotEmpty()) {
+                MonthlySpendingBarChart(monthlyData = monthlyData)
+            }
+
+            // Transaction List Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Transactions",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            // Transaction List
+            if (viewModel.transactions.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No transactions found",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(viewModel.transactions) { transaction ->
+                        BudgetListTransaction(transaction = transaction)
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 1.dp
+                        )
+                    }
+                }
             }
         }
     }
@@ -108,53 +130,58 @@ fun BudgetList(viewModel: BudgetViewModel = viewModel()) {
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            confirmButton = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(onClick = {
-                        if (amount.isNotBlank() && description.isNotBlank() && amount.toDoubleOrNull() != null) {
-                            viewModel.addTransaction(context, amount.toDouble(), description)
-                            showDialog = false
-                            amount = ""
-                            description = ""
-                        }
-                    }) {
-                        Text("Add")
-                    }
-                    Button(onClick = {
-                        showDialog = false
-                        amount = ""
-                        description = ""
-                    }) {
-                        Text("Cancel")
-                    }
-                }
-            },
             title = { Text("Add Transaction") },
             text = {
                 Column {
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        singleLine = true,
+                        label = { Text("Description") },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Text
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text("Description") }
+                            .padding(8.dp)
                     )
                     OutlinedTextField(
                         value = amount,
                         onValueChange = { amount = it },
-                        singleLine = true,
+                        label = { Text("Amount") },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Number
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        label = { Text("Amount") }
+                            .padding(8.dp)
                     )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (amount.isNotBlank() && description.isNotBlank() && amount.toDoubleOrNull() != null) {
+                            viewModel.addTransaction(
+                                context,
+                                amount.toDouble(),
+                                description
+                            )
+                            showDialog = false
+                            amount = ""
+                            description = ""
+                        }
+                    }
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                Button(onClick = {
+                    showDialog = false
+                    amount = ""
+                    description = ""
+                }) {
+                    Text("Cancel")
                 }
             }
         )
@@ -165,27 +192,27 @@ fun BudgetList(viewModel: BudgetViewModel = viewModel()) {
 fun BudgetListTransaction(transaction: Transaction) {
     Row(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Column(modifier = Modifier.weight(2f)) {
+            Text(
+                text = transaction.description,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = transaction.date,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Text(
-            text = transaction.description,
-            modifier = Modifier
-                .weight(1f)
-                .padding(16.dp)
-        )
-        Text(
-            text = "${transaction.amount}",
-            modifier = Modifier
-                .weight(0.5f)
-                .padding(16.dp)
-        )
-        Text(
-            text = transaction.date,
-            modifier = Modifier
-                .weight(0.6f)
-                .padding(16.dp)
+            text = "$${"%.2f".format(transaction.amount)}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -194,35 +221,45 @@ fun BudgetListTransaction(transaction: Transaction) {
 fun MonthlySpendingBarChart(monthlyData: List<Pair<String, Double>>) {
     val maxSpending = monthlyData.maxOfOrNull { it.second } ?: 1.0
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = "Monthly Spending", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Monthly Spending",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-        LazyRow(modifier = Modifier.fillMaxWidth()) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             items(monthlyData) { (month, total) ->
                 Column(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .height(200.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.height(200.dp)
                 ) {
-                    // Bar representing spending
+                    Text(
+                        text = "$${"%.2f".format(total)}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
-                            .height((200 * (total / maxSpending)).dp)
                             .width(40.dp)
-                            .background(Color.Blue)
+                            .height((180 * (total / maxSpending)).dp)
+                            .background(MaterialTheme.colorScheme.primary)
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    // Month label
-                    Text(text = month, style = MaterialTheme.typography.bodySmall)
-                    // Spending label
-                    Text(text = "$${"%.2f".format(total)}", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = formatMonth(month),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
     }
 }
-
