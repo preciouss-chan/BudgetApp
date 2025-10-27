@@ -1,18 +1,35 @@
 package com.example.budgetapp
 
 import android.icu.text.SimpleDateFormat
-import java.util.Locale
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +45,7 @@ fun MonthlySpendingScreen(viewModel: BudgetViewModel = viewModel()) {
         topBar = {
             TopAppBar(
                 title = { Text("Monthly Spending") },
-                colors = TopAppBarDefaults.topAppBarColors( // Use topAppBarColors
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -45,7 +62,7 @@ fun MonthlySpendingScreen(viewModel: BudgetViewModel = viewModel()) {
             if (monthlyData.isEmpty()) {
                 EmptyStateMessage()
             } else {
-                MonthlySpendingTable(monthlyData)
+                MonthlySpendingBarChart(monthlyData = monthlyData)
             }
         }
     }
@@ -58,13 +75,6 @@ fun EmptyStateMessage() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Removed Icon and using a Text placeholder instead
-            Text(
-                text = "(No Icon)",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No spending data available",
                 style = MaterialTheme.typography.headlineSmall,
@@ -81,72 +91,53 @@ fun EmptyStateMessage() {
 }
 
 @Composable
-fun MonthlySpendingTable(monthlyData: List<Pair<String, Double>>) {
+fun MonthlySpendingBarChart(monthlyData: List<Pair<String, Double>>) {
+    val maxSpending = monthlyData.maxOfOrNull { it.second } ?: 1.0
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            TableHeader()
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) // Use HorizontalDivider
-            LazyColumn {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
                 items(monthlyData) { (month, total) ->
-                    TableRow(month, total)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) // Use HorizontalDivider
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier.height(220.dp)
+                    ) {
+                        Text(
+                            text = "$${"%.2f".format(total)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height((180 * (total / maxSpending)).dp)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = formatMonth(month),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-fun TableHeader() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = "Month",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "Total Spent",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-fun TableRow(month: String, total: Double) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = formatMonth(month),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "$${"%.2f".format(total)}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            color = if (total > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-// Converts "YYYY-MM" to "MMM YYYY" (e.g., "2025-02" -> "Feb 2025")
 fun formatMonth(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM", Locale.getDefault())
@@ -154,6 +145,6 @@ fun formatMonth(dateString: String): String {
         val date = inputFormat.parse(dateString)
         date?.let { outputFormat.format(it) } ?: dateString
     } catch (e: Exception) {
-        dateString // Return original if parsing fails
+        dateString
     }
 }
